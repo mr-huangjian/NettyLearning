@@ -1,38 +1,42 @@
-package cn.itcast.netty;
+package cn.itcast.netty.c3;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
+import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+
 @Slf4j
-public class HelloServer {
+public class EventLoopServer {
     public static void main(String[] args) {
         new ServerBootstrap()
-                .group(new NioEventLoopGroup())
+                /*
+                First new NioEventLoopGroup(): boss 只负责下面的 NioServerSocketChannel 的 accept 事件
+                Second new NioEventLoopGroup(): worker 只负责下面的 NioSocketChannel 的 read、write 事件
+                 */
+                .group(new NioEventLoopGroup(), new NioEventLoopGroup())
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) throws Exception {
-                        log.debug("Server childHandler.initChannel");
-
-                        ch.pipeline().addLast(new StringDecoder());
                         ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                log.debug("Server read: " + msg);
+                                ByteBuf byteBuf = (ByteBuf) msg;
+                                log.debug(byteBuf.toString(Charset.defaultCharset()));
                             }
                         });
                     }
                 })
                 .bind(8088);
-
-        log.debug("Server start");
     }
-
 }
